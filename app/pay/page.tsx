@@ -21,9 +21,11 @@ export default function PayPage() {
   const stopScan = () => {
     setScanning(false);
     if (html5QrCodeRef.current) {
-      html5QrCodeRef.current.stop().then(() => {
-        html5QrCodeRef.current?.clear();
-      });
+      html5QrCodeRef.current
+        .stop()
+        .then(() => html5QrCodeRef.current?.clear())
+        .catch(() => {}); // Ignore errors if already stopped
+      html5QrCodeRef.current = null;
     }
   };
 
@@ -58,9 +60,11 @@ export default function PayPage() {
 
     return () => {
       if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().then(() => {
-          html5QrCodeRef.current?.clear();
-        });
+        html5QrCodeRef.current
+          .stop()
+          .then(() => html5QrCodeRef.current?.clear())
+          .catch(() => {}); // Ignore errors if already stopped
+        html5QrCodeRef.current = null;
       }
     };
   }, [scanning]);
