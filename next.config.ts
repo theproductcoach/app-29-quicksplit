@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  env: {
+    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
+  },
+  // Enable CSS source maps
+  productionBrowserSourceMaps: true,
 };
 
 export default nextConfig;
