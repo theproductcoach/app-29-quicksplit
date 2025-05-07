@@ -72,10 +72,18 @@ export default function PayForReceiptPage() {
         >
           <div
             className="modal-dialog modal-dialog-centered"
-            style={{ maxWidth: 400, width: "95%" }}
+            style={{
+              maxWidth: 400,
+              width: "95vw",
+              maxHeight: "95vh",
+              margin: "0 auto",
+            }}
           >
             <div className="modal-content bg-dark text-white border border-secondary rounded-4 shadow-lg position-relative">
-              <div className="modal-body p-4 text-center">
+              <div
+                className="modal-body p-4 text-center"
+                style={{ maxHeight: "70vh", overflowY: "auto", paddingTop: 48 }}
+              >
                 <h4 className="fw-bold mb-3">Share This Receipt</h4>
                 <div className="d-flex justify-content-center mb-3">
                   <div className="bg-white p-2 rounded">

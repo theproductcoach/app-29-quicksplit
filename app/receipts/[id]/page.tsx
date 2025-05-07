@@ -4,6 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { getReceipt } from "../../lib/receiptStore";
 import { useEffect, useState } from "react";
 import { Receipt } from "../../lib/receiptStore";
+import QRCode from "qrcode";
+import Image from "next/image";
 
 function getStatusBadge(status: string) {
   const badges: Record<string, { text: string; class: string }> = {
@@ -26,6 +28,7 @@ export default function ReceiptDetailsPage() {
   const router = useRouter();
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   useEffect(() => {
     if (params?.id) {
@@ -33,6 +36,12 @@ export default function ReceiptDetailsPage() {
       if (receiptData) {
         setReceipt(receiptData);
       }
+      // Generate QR code for the pay-for-receipt page
+      const url = `${window.location.origin}/pay-for-receipt/${params.id}`;
+      QRCode.toDataURL(url, { width: 200, margin: 2 }, (err, dataUrl) => {
+        if (!err && dataUrl) setQrDataUrl(dataUrl);
+        else setQrDataUrl("");
+      });
     }
   }, [params?.id]);
 
@@ -60,7 +69,18 @@ export default function ReceiptDetailsPage() {
         <div className="col-md-8 col-lg-6">
           <div className="card bg-dark border-secondary">
             <div className="card-body">
-              <h2 className="card-title mb-3">{merchant}</h2>
+              <button
+                className="btn btn-outline-light btn-sm w-100 mb-3"
+                onClick={() => router.back()}
+              >
+                &larr; Back
+              </button>
+              <h2
+                className="card-title mb-3 text-center"
+                style={{ wordBreak: "break-word" }}
+              >
+                {merchant}
+              </h2>
               <div
                 className="mb-2 text-white-50"
                 style={{ fontSize: "0.95rem" }}
@@ -106,7 +126,7 @@ export default function ReceiptDetailsPage() {
                   ))}
                 </ul>
               </div>
-              <div className="mb-2">
+              <div className="mb-3">
                 <div className="fw-semibold mb-1">Who Paid</div>
                 {paidBy && paidBy.length > 0 ? (
                   <ul className="list-inline mb-0">
@@ -123,26 +143,33 @@ export default function ReceiptDetailsPage() {
                   <span className="text-white-50">No payments yet</span>
                 )}
               </div>
-              <div className="d-flex gap-2 mt-4">
-                <button
-                  className="btn btn-primary flex-fill"
-                  onClick={() =>
-                    router.push(
-                      `/share?url=${encodeURIComponent(
-                        window.location.origin + payUrl
-                      )}`
-                    )
-                  }
-                >
-                  Generate QR
-                </button>
-                <button
-                  className="btn btn-outline-light flex-fill"
-                  onClick={handleCopy}
-                >
-                  {copied ? "Link Copied!" : "Generate Link"}
-                </button>
+              <div className="mb-3">
+                <div className="fw-semibold mb-2">Share Receipt</div>
+                <div className="d-flex justify-content-center mb-3">
+                  <div className="bg-white p-2 rounded">
+                    {qrDataUrl && (
+                      <Image
+                        src={qrDataUrl}
+                        alt="QR Code"
+                        width={200}
+                        height={200}
+                        style={{ display: "block", margin: "0 auto" }}
+                        unoptimized
+                        priority
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="text-center text-white-50 small mb-3">
+                  Scan this QR code to view and pay for items
+                </div>
               </div>
+              <button
+                className="btn btn-outline-light w-100"
+                onClick={handleCopy}
+              >
+                {copied ? "Link Copied!" : "Generate Link"}
+              </button>
             </div>
           </div>
         </div>
