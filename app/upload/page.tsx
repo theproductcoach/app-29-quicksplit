@@ -196,7 +196,7 @@ export default function UploadPage() {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} style={{ paddingBottom: 80 }}>
                   <div className="row g-4">
                     {/* Take Photo Section */}
                     <div className="col-12">
@@ -305,28 +305,27 @@ export default function UploadPage() {
                         </div>
                       </div>
                     )}
-
-                    <div className="col-12">
-                      <div className="d-grid">
-                        <button
-                          type="submit"
-                          className="btn btn-primary"
-                          disabled={!selectedFile || isLoading}
-                        >
-                          {isLoading ? (
-                            <>
-                              <span
-                                className="spinner-border spinner-border-sm me-2"
-                                role="status"
-                                aria-hidden="true"
-                              ></span>
-                              Uploading...
-                            </>
-                          ) : (
-                            "Upload Receipt"
-                          )}
-                        </button>
-                      </div>
+                  </div>
+                  <div className="fixed-bottom bg-dark border-top border-secondary py-3">
+                    <div className="container">
+                      <button
+                        type="submit"
+                        className="btn btn-primary w-100 btn-lg"
+                        disabled={!selectedFile || isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <span
+                              className="spinner-border spinner-border-sm me-2"
+                              role="status"
+                              aria-hidden="true"
+                            ></span>
+                            Uploading...
+                          </>
+                        ) : (
+                          "Upload Receipt"
+                        )}
+                      </button>
                     </div>
                   </div>
                 </form>
