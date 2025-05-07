@@ -2,9 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { put } from "@vercel/blob";
-import { addReceipt } from "../lib/receiptStore";
-import { v4 as uuidv4 } from "uuid";
 
 // Helper to generate a unique filename
 function generateUniqueFilename(extension = "jpg") {
@@ -15,12 +12,11 @@ function generateUniqueFilename(extension = "jpg") {
 
 export default function UploadPage() {
   const router = useRouter();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -29,8 +25,21 @@ export default function UploadPage() {
         setError("File size must be less than 10MB");
         return;
       }
-      setSelectedFile(file);
       setError(null);
+      // Store file as Data URL in sessionStorage
+      const reader = new FileReader();
+      reader.onload = () => {
+        sessionStorage.setItem(
+          "upload-preview",
+          JSON.stringify({
+            name: file.name,
+            type: file.type,
+            dataUrl: reader.result,
+          })
+        );
+        router.push("/upload/preview");
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -92,54 +101,24 @@ export default function UploadPage() {
             const file = new File([blob], generateUniqueFilename("jpg"), {
               type: "image/jpeg",
             });
-            setSelectedFile(file);
             stopCamera();
+            // Store file as Data URL in sessionStorage
+            const reader = new FileReader();
+            reader.onload = () => {
+              sessionStorage.setItem(
+                "upload-preview",
+                JSON.stringify({
+                  name: file.name,
+                  type: file.type,
+                  dataUrl: reader.result,
+                })
+              );
+              router.push("/upload/preview");
+            };
+            reader.readAsDataURL(file);
           }
         }, "image/jpeg");
       }
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFile) {
-      setError("Please select a file or take a photo");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const uniqueName = generateUniqueFilename(selectedFile.name.split('.').pop() || 'jpg');
-      const blob = await put(uniqueName, selectedFile, {
-        access: "public",
-      });
-
-      const response = await fetch("/api/analyze-receipt", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ imageUrl: blob.url }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to analyze receipt");
-      }
-
-      const receiptData = await response.json();
-      const id = uuidv4();
-      addReceipt(id, {
-        ...receiptData,
-        url: blob.url,
-      });
-      router.push(`/receipts/${id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload file");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -196,7 +175,11 @@ export default function UploadPage() {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} style={{ paddingBottom: 80 }}>
+                <form
+                  ref={formRef}
+                  style={{ paddingBottom: 80 }}
+                  onSubmit={(e) => e.preventDefault()}
+                >
                   <div className="row g-4">
                     {/* Take Photo Section */}
                     <div className="col-12">
@@ -283,49 +266,6 @@ export default function UploadPage() {
                           </label>
                         </div>
                       </div>
-                    </div>
-
-                    {selectedFile && (
-                      <div className="col-12">
-                        <div className="alert alert-info mb-0">
-                          <div className="d-flex align-items-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              className="bi bi-file-earmark-text me-2"
-                              viewBox="0 0 16 16"
-                            >
-                              <path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zM5 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5z" />
-                              <path d="M9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0zm0 1v2A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
-                            </svg>
-                            Selected: {selectedFile.name}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="fixed-bottom bg-dark border-top border-secondary py-3">
-                    <div className="container">
-                      <button
-                        type="submit"
-                        className="btn btn-primary w-100 btn-lg"
-                        disabled={!selectedFile || isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <span
-                              className="spinner-border spinner-border-sm me-2"
-                              role="status"
-                              aria-hidden="true"
-                            ></span>
-                            Uploading...
-                          </>
-                        ) : (
-                          "Upload Receipt"
-                        )}
-                      </button>
                     </div>
                   </div>
                 </form>
