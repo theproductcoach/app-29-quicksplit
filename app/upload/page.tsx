@@ -6,6 +6,13 @@ import { put } from "@vercel/blob";
 import { addReceipt } from "../lib/receiptStore";
 import { v4 as uuidv4 } from "uuid";
 
+// Helper to generate a unique filename
+function generateUniqueFilename(extension = "jpg") {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  return `receipt-${timestamp}-${random}.${extension}`;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -82,7 +89,7 @@ export default function UploadPage() {
         ctx.drawImage(videoRef.current, 0, 0);
         canvas.toBlob((blob) => {
           if (blob) {
-            const file = new File([blob], "receipt-photo.jpg", {
+            const file = new File([blob], generateUniqueFilename("jpg"), {
               type: "image/jpeg",
             });
             setSelectedFile(file);
@@ -104,7 +111,8 @@ export default function UploadPage() {
     setError(null);
 
     try {
-      const blob = await put(selectedFile.name, selectedFile, {
+      const uniqueName = generateUniqueFilename(selectedFile.name.split('.').pop() || 'jpg');
+      const blob = await put(uniqueName, selectedFile, {
         access: "public",
       });
 
