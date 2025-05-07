@@ -89,7 +89,13 @@ export default function PayPage() {
                   <div
                     id="qr-reader"
                     ref={qrRef}
-                    style={{ width: 280, margin: "0 auto" }}
+                    style={{
+                      width: 280,
+                      minHeight: "200px",
+                      background: "#222",
+                      margin: "0 auto",
+                      borderRadius: 8,
+                    }}
                   />
                   <button
                     className="btn btn-outline-light mt-3"

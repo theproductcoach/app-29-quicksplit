@@ -18,7 +18,7 @@ export default function Home() {
           <Link href="/upload" className="btn btn-primary btn-lg px-4 py-3">
             Upload a Receipt
           </Link>
-          <Link href="/scan" className="btn btn-outline-light btn-lg px-4 py-3">
+          <Link href="/pay" className="btn btn-outline-light btn-lg px-4 py-3">
             Pay my share
           </Link>
         </div>

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { put } from "@vercel/blob";
+import { addReceipt } from "../lib/receiptStore";
+import { v4 as uuidv4 } from "uuid";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -26,19 +28,41 @@ export default function UploadPage() {
   };
 
   const startCamera = async () => {
+    console.log("startCamera called");
     try {
+      console.log("Requesting camera access...");
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { facingMode: "environment" },
       });
+      console.log("Camera access granted, stream:", mediaStream);
       setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
       setShowCamera(true);
-    } catch {
+    } catch (err) {
       setError("Failed to access camera. Please check your permissions.");
+      console.error("getUserMedia error:", err);
     }
   };
+
+  useEffect(() => {
+    if (showCamera && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      console.log("Camera stream set (useEffect):", stream);
+      videoRef.current.onloadedmetadata = () => {
+        console.log("Video metadata loaded, attempting to play (useEffect).");
+        videoRef.current
+          ?.play()
+          .then(() => {
+            console.log("Video playing (useEffect).");
+          })
+          .catch((err) => {
+            console.error("Error calling play() (useEffect):", err);
+          });
+      };
+      videoRef.current.onerror = (e) => {
+        console.error("Video element error (useEffect):", e);
+      };
+    }
+  }, [showCamera, stream]);
 
   const stopCamera = () => {
     if (stream) {
@@ -97,7 +121,13 @@ export default function UploadPage() {
         throw new Error(errorData.error || "Failed to analyze receipt");
       }
 
-      router.push("/receipts");
+      const receiptData = await response.json();
+      const id = uuidv4();
+      addReceipt(id, {
+        ...receiptData,
+        url: blob.url,
+      });
+      router.push(`/receipts/${id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
@@ -126,7 +156,16 @@ export default function UploadPage() {
                     autoPlay
                     playsInline
                     className="img-fluid rounded mb-3"
-                    style={{ maxHeight: "400px" }}
+                    style={{
+                      minHeight: "200px",
+                      maxHeight: "400px",
+                      width: "100%",
+                      objectFit: "cover",
+                      background: "#222",
+                    }}
+                    onError={(e) =>
+                      console.error("Video element error event:", e)
+                    }
                   />
                   <div className="d-flex justify-content-center gap-2">
                     <button className="btn btn-primary" onClick={capturePhoto}>
@@ -173,7 +212,10 @@ export default function UploadPage() {
                           <button
                             type="button"
                             className="btn btn-primary"
-                            onClick={startCamera}
+                            onClick={() => {
+                              console.log("Open Camera button clicked");
+                              startCamera();
+                            }}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"

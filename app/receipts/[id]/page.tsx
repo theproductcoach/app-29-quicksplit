@@ -1,18 +1,18 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { getReceipt } from "../../lib/receiptStore";
+import { useEffect, useState } from "react";
+import { Receipt } from "../../lib/receiptStore";
 
 function getStatusBadge(status: string) {
-  switch (status) {
-    case "New":
-      return <span className="badge bg-primary">New</span>;
-    case "Partial":
-      return <span className="badge bg-warning text-dark">Partial</span>;
-    case "Paid":
-      return <span className="badge bg-success">Paid</span>;
-    default:
-      return null;
-  }
+  const badges: Record<string, { text: string; class: string }> = {
+    New: { text: "New", class: "bg-primary" },
+    Partial: { text: "Partial", class: "bg-warning" },
+    Paid: { text: "Paid", class: "bg-success" },
+  };
+  const badge = badges[status] || badges.New;
+  return <span className={`badge ${badge.class} px-2 py-1`}>{badge.text}</span>;
 }
 
 interface ReceiptItem {
@@ -22,20 +22,37 @@ interface ReceiptItem {
 }
 
 export default function ReceiptDetailsPage() {
-  const searchParams = useSearchParams();
+  const params = useParams();
   const router = useRouter();
-  const url = searchParams.get("url") || "";
-  const merchant = searchParams.get("merchant") || "";
-  const date = searchParams.get("date") || "";
-  const status = searchParams.get("status") || "New";
-  const total = searchParams.get("total") || "";
-  const tax = searchParams.get("tax") || "";
-  const items = searchParams.get("items")
-    ? (JSON.parse(searchParams.get("items")!) as ReceiptItem[])
-    : [];
-  const paidBy = searchParams.get("paidBy")
-    ? JSON.parse(searchParams.get("paidBy")!)
-    : [];
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (params?.id) {
+      const receiptData = getReceipt(params.id as string);
+      if (receiptData) {
+        setReceipt(receiptData);
+      }
+    }
+  }, [params?.id]);
+
+  if (!receipt) {
+    return (
+      <div className="container py-4 text-center text-white-50">
+        Loading receipt...
+      </div>
+    );
+  }
+
+  const { merchant, date, status, total, tax, items, paidBy } = receipt;
+
+  const payUrl = `/pay-for-receipt/${params.id}`;
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(window.location.origin + payUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <div className="container py-4">
@@ -54,19 +71,15 @@ export default function ReceiptDetailsPage() {
               <div className="mb-3">
                 <div className="d-flex justify-content-between">
                   <span className="fw-semibold">Subtotal:</span>
-                  <span>
-                    ${(parseFloat(total) - parseFloat(tax)).toFixed(2)}
-                  </span>
+                  <span>${(total - tax).toFixed(2)}</span>
                 </div>
                 <div className="d-flex justify-content-between">
                   <span className="fw-semibold">Tax:</span>
-                  <span>${parseFloat(tax).toFixed(2)}</span>
+                  <span>${tax.toFixed(2)}</span>
                 </div>
                 <div className="d-flex justify-content-between border-top pt-2 mt-2">
                   <span className="fw-bold">Total:</span>
-                  <span className="fw-bold">
-                    ${parseFloat(total).toFixed(2)}
-                  </span>
+                  <span className="fw-bold">${total.toFixed(2)}</span>
                 </div>
               </div>
               <div className="mb-3">
@@ -95,7 +108,7 @@ export default function ReceiptDetailsPage() {
               </div>
               <div className="mb-2">
                 <div className="fw-semibold mb-1">Who Paid</div>
-                {paidBy.length > 0 ? (
+                {paidBy && paidBy.length > 0 ? (
                   <ul className="list-inline mb-0">
                     {paidBy.map((name: string, idx: number) => (
                       <li
@@ -110,16 +123,26 @@ export default function ReceiptDetailsPage() {
                   <span className="text-white-50">No payments yet</span>
                 )}
               </div>
-              {url && (
+              <div className="d-flex gap-2 mt-4">
                 <button
-                  className="btn btn-primary w-100 mt-4"
+                  className="btn btn-primary flex-fill"
                   onClick={() =>
-                    router.push(`/share?url=${encodeURIComponent(url)}`)
+                    router.push(
+                      `/share?url=${encodeURIComponent(
+                        window.location.origin + payUrl
+                      )}`
+                    )
                   }
                 >
-                  Share
+                  Generate QR
                 </button>
-              )}
+                <button
+                  className="btn btn-outline-light flex-fill"
+                  onClick={handleCopy}
+                >
+                  {copied ? "Link Copied!" : "Generate Link"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
