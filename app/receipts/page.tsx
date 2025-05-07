@@ -37,8 +37,8 @@ const demoReceipts: Receipt[] = [
       ],
       total: 12.25,
       tax: 1.25,
-      status: "New",
-      paidBy: [],
+      status: "Paid",
+      paidBy: ["Alice", "Bob"],
       createdAt: "2024-03-15T10:00:00Z",
     },
   },
@@ -103,15 +103,18 @@ export default function ReceiptsPage() {
               <h2 className="card-title mb-4">My Receipts</h2>
               <div className="d-flex flex-column gap-3">
                 {demoReceipts.map((receipt) => (
-                  <button
+                  <div
                     key={receipt.id}
-                    className="receipt-row btn text-start bg-dark border-secondary rounded-3 py-3 px-3 d-flex align-items-center justify-content-between"
-                    style={{ cursor: "pointer" }}
+                    className="receipt-card bg-secondary bg-opacity-10 border border-secondary rounded-3 px-4 py-3 d-flex justify-content-between align-items-center"
+                    style={{ minHeight: 90, cursor: "pointer" }}
                     onClick={() => setOpenReceipt(receipt)}
                   >
-                    <div className="d-flex align-items-center gap-3 flex-grow-1">
+                    <div
+                      className="d-flex flex-column justify-content-between align-items-start flex-grow-1"
+                      style={{ minWidth: 0 }}
+                    >
                       <span
-                        className="fw-semibold fs-5 text-white"
+                        className="fw-bold fs-4 text-white mb-1"
                         style={{
                           minWidth: 0,
                           whiteSpace: "nowrap",
@@ -122,32 +125,22 @@ export default function ReceiptsPage() {
                         {receipt.data.merchant}
                       </span>
                       {getStatusBadge(receipt.data.status)}
+                    </div>
+                    <div
+                      className="d-flex flex-column align-items-end justify-content-between ms-3"
+                      style={{ minWidth: 110 }}
+                    >
                       <span
-                        className="text-white-50 ms-2"
-                        style={{ fontSize: "0.95rem" }}
+                        className="text-white-50 mb-2"
+                        style={{ fontSize: "1.05rem" }}
                       >
                         {receipt.data.date}
                       </span>
-                    </div>
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="fw-bold text-white fs-5">
+                      <span className="fw-bold text-white fs-4">
                         ${receipt.data.total.toFixed(2)}
                       </span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        fill="currentColor"
-                        className="bi bi-chevron-right text-white-50"
-                        viewBox="0 0 16 16"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M6.646 12.854a.5.5 0 0 1 0-.708L10.293 8 6.646 4.354a.5.5 0 1 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708 0z"
-                        />
-                      </svg>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -212,9 +205,8 @@ export default function ReceiptsPage() {
                         key={idx}
                         className="list-group-item bg-dark text-white d-flex justify-content-between align-items-center px-0 py-2 border-0"
                       >
-                        <span>{item.name}</span>
-                        <span>
-                          ${item.price.toFixed(2)}
+                        <div className="d-flex align-items-center gap-2">
+                          <span>{item.name}</span>
                           {item.paidBy && (
                             <span
                               className="badge bg-info text-dark ms-2"
@@ -223,6 +215,9 @@ export default function ReceiptsPage() {
                               Paid by {item.paidBy}
                             </span>
                           )}
+                        </div>
+                        <span className="text-end">
+                          ${item.price.toFixed(2)}
                         </span>
                       </li>
                     ))}

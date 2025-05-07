@@ -28,11 +28,12 @@ export default function PayPage() {
             setQrResult(decodedText);
             stopScan();
           },
-          (err) => {
+          () => {
             // ignore scan errors
           }
         );
-      } catch (err) {
+      } catch (error) {
+        console.error("Error starting QR scan:", error);
         setError("Failed to access camera or start QR scan.");
         setScanning(false);
       }

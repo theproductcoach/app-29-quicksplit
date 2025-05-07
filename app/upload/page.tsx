@@ -35,7 +35,7 @@ export default function UploadPage() {
         videoRef.current.srcObject = mediaStream;
       }
       setShowCamera(true);
-    } catch (err) {
+    } catch {
       setError("Failed to access camera. Please check your permissions.");
     }
   };
@@ -82,7 +82,6 @@ export default function UploadPage() {
     try {
       const blob = await put(selectedFile.name, selectedFile, {
         access: "public",
-        addRandomSuffix: true,
       });
 
       const response = await fetch("/api/analyze-receipt", {
@@ -169,7 +168,7 @@ export default function UploadPage() {
                           </svg>
                           <h5 className="text-white mb-3">Take a Photo</h5>
                           <p className="text-white-50 mb-3">
-                            Use your device's camera to capture a receipt
+                            Use your device&apos;s camera to capture a receipt
                           </p>
                           <button
                             type="button"
