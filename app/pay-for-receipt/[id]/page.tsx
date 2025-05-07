@@ -2,8 +2,9 @@
 
 import { useParams } from "next/navigation";
 import { getReceipt, Receipt, ReceiptItem } from "../../lib/receiptStore";
-import { useEffect, useState, useRef } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
+import Image from "next/image";
 
 export default function PayForReceiptPage() {
   const params = useParams();
@@ -11,10 +12,7 @@ export default function PayForReceiptPage() {
   const [selected, setSelected] = useState<number[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [qrError, setQrError] = useState<string | null>(null);
-  const qrRef = useRef<HTMLDivElement>(null);
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   useEffect(() => {
     if (params?.id) {
@@ -27,46 +25,18 @@ export default function PayForReceiptPage() {
     }
   }, [params?.id]);
 
+  // Generate QR code for sharing
   useEffect(() => {
-    if (showQrModal && qrRef.current && !scanning) {
-      setQrError(null);
-      setScanning(true);
-      const qrId = "qr-reader-modal";
-      qrRef.current.id = qrId;
-      const html5QrCode = new Html5Qrcode(qrId);
-      html5QrCodeRef.current = html5QrCode;
-      html5QrCode
-        .start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            // On successful scan
-            setShowQrModal(false);
-            setScanning(false);
-            html5QrCode.stop().then(() => html5QrCode.clear());
-            // For now, just log the result. You can handle navigation or prefill here.
-            console.log("Scanned QR:", decodedText);
-          },
-          () => {
-            // ignore scan errors
-          }
-        )
-        .catch((error) => {
-          console.error("QR scan error:", error);
-          setQrError("Failed to access camera or start QR scan.");
-          setScanning(false);
-        });
+    if (showQrModal && params?.id) {
+      const url = `${window.location.origin}/pay-for-receipt/${params.id}`;
+      QRCode.toDataURL(url, { width: 200, margin: 2 }, (err, dataUrl) => {
+        if (!err && dataUrl) setQrDataUrl(dataUrl);
+        else setQrDataUrl("");
+      });
+    } else {
+      setQrDataUrl("");
     }
-    // Cleanup on modal close
-    return () => {
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().then(() => {
-          html5QrCodeRef.current?.clear();
-        });
-      }
-      setScanning(false);
-    };
-  }, [showQrModal, scanning]);
+  }, [showQrModal, params?.id]);
 
   if (!receipt) {
     return (
@@ -94,7 +64,7 @@ export default function PayForReceiptPage() {
 
   return (
     <div className="container py-4">
-      {/* QR Scan Modal */}
+      {/* QR Share Modal */}
       {showQrModal && (
         <div
           className="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
@@ -106,23 +76,30 @@ export default function PayForReceiptPage() {
           >
             <div className="modal-content bg-dark text-white border border-secondary rounded-4 shadow-lg position-relative">
               <div className="modal-body p-4 text-center">
-                <h4 className="fw-bold mb-3">Scan QR Code</h4>
-                {qrError && <div className="alert alert-danger">{qrError}</div>}
-                <div
-                  ref={qrRef}
-                  style={{
-                    width: 280,
-                    minHeight: 200,
-                    background: "#222",
-                    margin: "0 auto",
-                    borderRadius: 8,
-                  }}
-                />
+                <h4 className="fw-bold mb-3">Share This Receipt</h4>
+                <div className="d-flex justify-content-center mb-3">
+                  <div className="bg-white p-2 rounded">
+                    {qrDataUrl && (
+                      <Image
+                        src={qrDataUrl}
+                        alt="QR Code"
+                        width={200}
+                        height={200}
+                        style={{ display: "block", margin: "0 auto" }}
+                        unoptimized
+                        priority
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="text-center text-white-50 small mb-3">
+                  Scan this QR code to view and pay for items
+                </div>
                 <button
                   className="btn btn-outline-light mt-3 w-100"
                   onClick={() => setShowQrModal(false)}
                 >
-                  Cancel
+                  Close
                 </button>
               </div>
             </div>
@@ -139,20 +116,20 @@ export default function PayForReceiptPage() {
                   className="btn btn-outline-info btn-sm"
                   type="button"
                   onClick={() => setShowQrModal(true)}
-                  title="Scan QR Code"
+                  title="Show QR Code"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="20"
                     height="20"
                     fill="currentColor"
-                    className="bi bi-qr-code-scan me-1"
+                    className="bi bi-qr-code me-1"
                     viewBox="0 0 16 16"
                   >
                     <path d="M2 2h2V1a1 1 0 0 0-1-1H1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1V2zm1 1H2V2h1v1zm9-1h2V1a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v1h2V2zm1 1h-1V2h1v1zM2 14h2v1a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1v2zm1-1H2v-1h1v1zm9 1h2v1a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1h2v1zm1-1h-1v-1h1v1z" />
                     <path d="M5 5h1v1H5V5zm2 0h1v1H7V5zm2 0h1v1H9V5zm0 2h1v1H9V7zm-2 0h1v1H7V7zm-2 0h1v1H5V7zm0 2h1v1H5V9zm2 0h1v1H7V9zm2 0h1v1H9V9zm0 2h1v1H9v-1zm-2 0h1v1H7v-1zm-2 0h1v1H5v-1z" />
                   </svg>
-                  Scan QR
+                  Show QR
                 </button>
               </div>
               <div

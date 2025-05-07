@@ -1,6 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import QRCode from "qrcode";
+import Image from "next/image";
+import {
+  addReceipt,
+  getReceipt as getStoredReceipt,
+} from "../lib/receiptStore";
 
 interface ReceiptItem {
   name: string;
@@ -93,6 +99,43 @@ function getStatusBadge(status: string) {
 
 export default function ReceiptsPage() {
   const [openReceipt, setOpenReceipt] = useState<Receipt | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  // Ensure demo receipts are in localStorage
+  useEffect(() => {
+    demoReceipts.forEach((receipt) => {
+      // Only add if not already present
+      if (!getStoredReceipt(receipt.id)) {
+        // Convert demo receipt to the Receipt type expected by addReceipt
+        addReceipt(receipt.id, {
+          merchant: receipt.data.merchant,
+          date: receipt.data.date,
+          items: receipt.data.items,
+          total: receipt.data.total,
+          tax: receipt.data.tax,
+          status: receipt.data.status,
+          paidBy: receipt.data.paidBy,
+          url: "",
+        });
+      }
+    });
+  }, []);
+
+  const getPayUrl = (receiptId: string) => {
+    return `${window.location.origin}/pay-for-receipt/${receiptId}`;
+  };
+
+  useEffect(() => {
+    if (openReceipt) {
+      const url = getPayUrl(openReceipt.id);
+      QRCode.toDataURL(url, { width: 200, margin: 2 }, (err, dataUrl) => {
+        if (!err && dataUrl) setQrDataUrl(dataUrl);
+        else setQrDataUrl("");
+      });
+    } else {
+      setQrDataUrl("");
+    }
+  }, [openReceipt]);
 
   return (
     <div className="container py-4">
@@ -223,7 +266,7 @@ export default function ReceiptsPage() {
                     ))}
                   </ul>
                 </div>
-                <div className="mb-2">
+                <div className="mb-3">
                   <div className="fw-semibold mb-1">Who Paid</div>
                   {openReceipt.data.paidBy.length > 0 ? (
                     <ul className="list-inline mb-0">
@@ -240,8 +283,29 @@ export default function ReceiptsPage() {
                     <span className="text-white-50">No payments yet</span>
                   )}
                 </div>
+                <div className="mb-3">
+                  <div className="fw-semibold mb-2">Share Receipt</div>
+                  <div className="d-flex justify-content-center mb-3">
+                    <div className="bg-white p-2 rounded">
+                      {qrDataUrl && (
+                        <Image
+                          src={qrDataUrl}
+                          alt="QR Code"
+                          width={200}
+                          height={200}
+                          style={{ display: "block", margin: "0 auto" }}
+                          unoptimized
+                          priority
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center text-white-50 small mb-3">
+                    Scan this QR code to view and pay for items
+                  </div>
+                </div>
                 <button
-                  className="btn btn-outline-light w-100 mt-3"
+                  className="btn btn-outline-light w-100"
                   onClick={() => setOpenReceipt(null)}
                 >
                   Close
